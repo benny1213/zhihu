@@ -6,6 +6,8 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
+import requests
+
 
 
 class ZhihuuserSpiderMiddleware(object):
@@ -68,6 +70,7 @@ class ZhihuuserDownloaderMiddleware(object):
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
+    proxy = ''
     def process_request(self, request, spider):
         # Called for each request that goes through the downloader
         # middleware.
@@ -78,7 +81,11 @@ class ZhihuuserDownloaderMiddleware(object):
         # - or return a Request object
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
-        return None
+        
+        if(self.proxy == ''):
+            self.get_proxy()
+        request.meta['proxy'] = self.proxy
+        spider.logger.info('\n~~~~~~~~~~~~~~~~using proxy: '+ self.proxy+'~~~~~~~~~~~~~~~~')
 
     def process_response(self, request, response, spider):
         # Called with the response returned from the downloader.
@@ -87,6 +94,10 @@ class ZhihuuserDownloaderMiddleware(object):
         # - return a Response object
         # - return a Request object
         # - or raise IgnoreRequest
+
+        if (response.status != 200):
+            self.get_proxy()
+            return request
         return response
 
     def process_exception(self, request, exception, spider):
@@ -97,7 +108,13 @@ class ZhihuuserDownloaderMiddleware(object):
         # - return None: continue processing this exception
         # - return a Response object: stops process_exception() chain
         # - return a Request object: stops process_exception() chain
-        pass
+        print("\n 出现异常，重试请求")
+        self.get_proxy()
+        return request
+
+    def get_proxy(self):
+        # 重新得到一个proxy并返回request
+        self.proxy = "http://" + requests.get('http://199.247.14.142:5010/get').text
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
