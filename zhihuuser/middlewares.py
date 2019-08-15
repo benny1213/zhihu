@@ -82,9 +82,8 @@ class ZhihuuserDownloaderMiddleware(object):
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
         
-        if(self.proxy == ''):
-            self.get_proxy()
-        request.meta['proxy'] = self.proxy
+        self.proxy = self.get_proxy()
+        request.meta['proxy'] = 'http://' + self.proxy
         spider.logger.info('\n~~~~~~~~~~~~~~~~using proxy: '+ self.proxy+'~~~~~~~~~~~~~~~~')
 
     def process_response(self, request, response, spider):
@@ -96,7 +95,7 @@ class ZhihuuserDownloaderMiddleware(object):
         # - or raise IgnoreRequest
 
         if (response.status != 200):
-            self.get_proxy()
+            self.delete_proxy(self.proxy)
             return request
         return response
 
@@ -114,7 +113,10 @@ class ZhihuuserDownloaderMiddleware(object):
 
     def get_proxy(self):
         # 重新得到一个proxy并返回request
-        self.proxy = "http://" + requests.get('http://199.247.14.142:5010/get').text
+        return requests.get('http://127.0.0.1:5010/get/').content
+
+    def delete_proxy(self, proxy):
+        requests.get("http://127.0.0.1:5010/delete/?proxy={}".format(proxy))
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
